@@ -14,12 +14,15 @@ final class ShellCommand {
     }
     
     enum CommandType {
-        case report(path: String)
+        case invocation(path: String)
+        case invocationMetaData(path: String, id: String)
         
         var command: String {
             switch self {
-            case let .report(path):
+            case let .invocation(path):
                 return "xcrun xcresulttool get --format json --path \(path)"
+            case let .invocationMetaData(path, id):
+                return "xcrun xcresulttool get --format json --path \(path) --id \(id)"
             }
         }
     }

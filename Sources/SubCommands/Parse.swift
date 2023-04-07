@@ -49,12 +49,24 @@ struct Parse: ParsableCommand {
     mutating func run() {
         do {
             let output = try ShellCommand()
-                .setup(with: .report(path: a()))
+                .setup(with: .invocation(path: a()))
                 .run()
-            let json = Data(output.utf8)
-            let decoder = JSONDecoder()
-            let result = try decoder.decode(Output.self, from: json)
-            print("output: \n\(result.type)")
+            let result = try JSONDecoder().decode(ActionsInvocationRecordModel.self, from: Data(output.utf8))
+            print("output: \n\(result.metrics.errorCount)")
+        } catch {
+            if options.verbose {
+                print("--woody--", error)
+            }
+        }
+    }
+    
+    func runInvocation() {
+        do {
+            let output = try ShellCommand()
+                .setup(with: .invocation(path: a()))
+                .run()
+            let result = try JSONDecoder().decode(ActionsInvocationRecordModel.self, from: Data(output.utf8))
+            print("output: \n\(result.metrics.errorCount)")
         } catch {
             if options.verbose {
                 print("--woody--", error.localizedDescription)
@@ -62,20 +74,3 @@ struct Parse: ParsableCommand {
         }
     }
 }
-
-struct Output: Decodable {
-    let type: TypeNameModel
-    let actions: ActionOutputModel
-//    let issues: String
-//    let metadataRef: String
-//    let metrics: String
-    
-    enum CodingKeys: String, CodingKey {
-        case type = "_type"
-        case actions
-//        case issuesr
-//        case metadataRef
-//        case metrics
-    }
-}
-
