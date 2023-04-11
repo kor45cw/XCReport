@@ -11,6 +11,8 @@ import Foundation
 extension CodeCoverageInfoModel {
     enum CodingKeys: CodingKey {
         case hasCoverageData
+        case archiveRef
+        case reportRef
     }
     
     init(from decoder: Decoder) throws {
@@ -21,5 +23,7 @@ extension CodeCoverageInfoModel {
         } else {
             self.hasCoverageData = nil
         }
+        self.archiveRef = try container.decodeIfPresent(ReferenceModel.self, forKey: .archiveRef)
+        self.reportRef = try container.decodeIfPresent(ReferenceModel.self, forKey: .reportRef)
     }
 }

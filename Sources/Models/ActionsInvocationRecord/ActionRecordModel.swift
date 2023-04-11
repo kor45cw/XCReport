@@ -28,6 +28,7 @@ struct ActionResultModel: Decodable {
     let metrics: ResultMetricsModel
     @PrimitiveTypeModel var resultName: String
     @PrimitiveTypeModel var status: String
+    let testsRef: ReferenceModel?
 }
 
 
@@ -73,6 +74,10 @@ struct ActionSDKRecordModel: Decodable {
 
 struct CodeCoverageInfoModel: Decodable {
     let hasCoverageData: Bool?
+    let archiveRef: ReferenceModel?
+    let reportRef: ReferenceModel?
+    
+    
 }
 
 

@@ -16,13 +16,18 @@ final class ShellCommand {
     enum CommandType {
         case invocation(path: String)
         case invocationMetaData(path: String, id: String)
-        
+        case testPlanRunSummary(path: String, id: String)
+        case codeCoverage(path: String)
+
         var command: String {
             switch self {
             case let .invocation(path):
                 return "xcrun xcresulttool get --format json --path \(path)"
-            case let .invocationMetaData(path, id):
+            case let .invocationMetaData(path, id),
+                let .testPlanRunSummary(path, id):
                 return "xcrun xcresulttool get --format json --path \(path) --id \(id)"
+            case let .codeCoverage(path):
+                return "xcrun xccov view --report --json \(path)"
             }
         }
     }
