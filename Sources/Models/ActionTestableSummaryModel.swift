@@ -17,6 +17,7 @@ struct ActionTestableSummaryModel: Decodable {
     @PrimitiveTypeModel var testKind: String
     @PrimitiveTypeModel var testLanguage: String
     @PrimitiveTypeModel var testRegion: String
+    // failureSummaries: [ActionTestFailureSummaryModel]?
     let tests: [ActionTestSummaryGroupModel]
     
     enum CodingKeys: CodingKey {

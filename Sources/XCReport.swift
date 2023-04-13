@@ -10,5 +10,5 @@ struct XCReport: ParsableCommand {
     static let configuration = CommandConfiguration(
             commandName: "xcreport",
             abstract: "A Swift command-line tool to manage .xcresult file",
-            subcommands: [Parse.self])
+            subcommands: [Parse.self, Coverage.self])
 }

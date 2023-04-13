@@ -9,14 +9,19 @@ import ArgumentParser
 import Foundation
 
 struct Options: ParsableArguments {
-    @Argument(
-            help: ".xcresult file Path",
-            completion: .file(),
-            transform: URL.init(fileURLWithPath:)
-    )
-    var xcResultFile: URL? = nil
+    @Argument(help: ".xcresult file Path")
+    var xcResultFile: String? = nil
     
-    @Flag(help: "Include extra information in the output.")
+    @Flag(name: .shortAndLong, help: "Whether to print target coverage.")
+    var targetCoverage = false
+    
+    @Flag(name: .shortAndLong, help: "Whether to print file coverage.")
+    var fileCoverage = false
+    
+    @Flag(name: .shortAndLong, help: "Whether to print function coverage.")
+    var callerCoverage = false
+    
+    @Flag(name: .shortAndLong, help: "Include extra information in the output.") // example --verbose => verbose = true
     var verbose = false
 }
 
@@ -26,37 +31,40 @@ struct Parse: ParsableCommand {
     
     @OptionGroup var options: Options
     
-    func a() -> String {
-        guard let inputFile = options.xcResultFile,
-              let enumerator = FileManager.default.enumerator(
-                  at: inputFile,
-                  includingPropertiesForKeys: [.nameKey],
-                  options: [.skipsHiddenFiles, .skipsPackageDescendants],
-                  errorHandler: nil)
-            else {
-            return ""
+    func validate() throws {
+        guard let xcResultFile = options.xcResultFile else {
+            throw ValidationError("xcresult file path is Required")
         }
         
-        var target: URL?
-        for case let url as URL in enumerator where url.isFileURL {
-            target = url
-            break
+        if !FileManager.default.fileExists(atPath: xcResultFile) {
+            throw ValidationError("'xcresult file path' does not exist")
         }
-        return target?.deletingLastPathComponent().absoluteString.replacingOccurrences(of: "file://", with: "") ?? ""
-
     }
     
-    mutating func run() {
-        runCodeCoverage()
+    func run() throws {
+        runInvocation()
+    }
+    
+    var filePath: String {
+        options.xcResultFile ?? ""
     }
     
     func runInvocation() {
         do {
             let output = try ShellCommand()
-                .setup(with: .invocation(path: a()))
+                .setup(with: .invocation(path: filePath))
                 .run()
             let result = try JSONDecoder().decode(ActionsInvocationRecordModel.self, from: Data(output.utf8))
-            print("output: \n\(result.metrics.errorCount)")
+            
+            print("metrics: error: \(result.metrics.errorCount ?? 0), test: \(result.metrics.testsCount ?? 0), warning: \(result.metrics.warningCount ?? 0)")
+            print("build status: \(result.actions.first?.buildResult.status ?? "")")
+            print("action status: \(result.actions.first?.actionResult.status ?? "")")
+            
+            for action in result.actions {
+                if let id = action.actionResult.testsRef?.id {
+                    runTestPlanRunSummary(id: id)
+                }
+            }
         } catch {
             if options.verbose {
                 print("--woody--", error.localizedDescription)
@@ -67,10 +75,14 @@ struct Parse: ParsableCommand {
     func runTestPlanRunSummary(id: String) {
         do {
             let output = try ShellCommand()
-                .setup(with: .testPlanRunSummary(path: a(), id: id))
+                .setup(with: .testPlanRunSummary(path: filePath, id: id))
                 .run()
-            let result = try JSONDecoder().decode(ActionTestPlanRunSummaryModel.self, from: Data(output.utf8))
-            print("output: \n\(result.testableSummaries.count)")
+            let result = try JSONDecoder().decode(ActionTestPlanRunSummariesModel.self, from: Data(output.utf8))
+            result.summaries.first?.testableSummaries.forEach {
+                print("\($0.name) result: \($0.tests.compactMap(\.duration).reduce(0, +))")
+                // TODO: find failed Test
+                
+            }
         } catch {
             if options.verbose {
                 print("--woody--", error.localizedDescription)
@@ -78,21 +90,5 @@ struct Parse: ParsableCommand {
         }
     }
     
-    func runCodeCoverage() {
-        do {
-            let output = try ShellCommand()
-                .setup(with: .codeCoverage(path: a()))
-                .run()
-            let result = try JSONDecoder().decode(CodeCoverageModel.self, from: Data(output.utf8))
-            print("""
-                  output: \(result.coveredLines)
-                  \(result.lineCoverage), \(result.executableLines)
-                  \(result.targets.first!.name)
-                  """)
-        } catch {
-            if options.verbose {
-                print("--woody--", error.localizedDescription)
-            }
-        }
-    }
+    
 }
