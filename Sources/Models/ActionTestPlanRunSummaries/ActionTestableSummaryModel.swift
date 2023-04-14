@@ -17,7 +17,7 @@ struct ActionTestableSummaryModel: Decodable {
     @PrimitiveTypeModel var testKind: String
     @PrimitiveTypeModel var testLanguage: String
     @PrimitiveTypeModel var testRegion: String
-    // failureSummaries: [ActionTestFailureSummaryModel]?
+    let failureSummaries: [ActionTestFailureSummaryModel]?
     let tests: [ActionTestSummaryGroupModel]
     
     enum CodingKeys: CodingKey {
@@ -29,6 +29,7 @@ struct ActionTestableSummaryModel: Decodable {
         case testKind
         case testLanguage
         case testRegion
+        case failureSummaries
         case tests
     }
     
@@ -42,6 +43,7 @@ struct ActionTestableSummaryModel: Decodable {
         self._testKind = try container.decode(PrimitiveTypeModel<String>.self, forKey: .testKind)
         self._testLanguage = try container.decode(PrimitiveTypeModel<String>.self, forKey: .testLanguage)
         self._testRegion = try container.decode(PrimitiveTypeModel<String>.self, forKey: .testRegion)
+        self.failureSummaries = try container.decodeIfPresent(ArrayType<ActionTestFailureSummaryModel>.self, forKey: .failureSummaries)?.values
         self.tests = try container.decode(ArrayType<ActionTestSummaryGroupModel>.self, forKey: .tests).values
     }
 }

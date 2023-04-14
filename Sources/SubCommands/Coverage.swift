@@ -8,14 +8,42 @@
 import ArgumentParser
 import Foundation
 
+struct CoverageOptions: ParsableArguments {
+    @Argument(help: ".xcresult file Path")
+    var xcResultFile: String? = nil
+    
+    @Flag(name: .shortAndLong, help: "Whether to print target coverage.")
+    var targetCoverage = false
+    
+    @Flag(name: .shortAndLong, help: "Whether to print file coverage.")
+    var fileCoverage = false
+    
+    @Flag(name: .shortAndLong, help: "Whether to print function coverage.")
+    var callerCoverage = false
+    
+    @Flag(name: .shortAndLong, help: "Include extra information in the output.") // example --verbose => verbose = true
+    var verbose = false
+}
+
+
 struct Coverage: ParsableCommand {
     
-    public static let configuration = CommandConfiguration(abstract: "Generate a blog post banner from the given input")
+    public static let configuration = CommandConfiguration(abstract: "Generates a code coverage report of Xcode test results.")
 
-    @OptionGroup var options: Options
+    @OptionGroup var options: CoverageOptions
     
     var filePath: String {
         options.xcResultFile ?? ""
+    }
+    
+    func validate() throws {
+        guard let xcResultFile = options.xcResultFile else {
+            throw ValidationError("xcresult file path is Required")
+        }
+        
+        if !FileManager.default.fileExists(atPath: xcResultFile) {
+            throw ValidationError("'xcresult file path' does not exist")
+        }
     }
     
     func run() throws {
@@ -27,7 +55,6 @@ struct Coverage: ParsableCommand {
         
         let result = try JSONDecoder().decode(CodeCoverageModel.self, from: Data(output.utf8))
         print("output: \(parseCodeCoverage(result).reduce("", { $0 + "\n\($1)" }))")
-        
     }
     
     func parseCodeCoverage(_ input: CodeCoverageModel) -> [String] {
