@@ -46,9 +46,9 @@ struct Parse: ParsableCommand {
             .run()
         let result = try JSONDecoder().decode(ActionsInvocationRecordModel.self, from: Data(output.utf8))
         
-        print("metrics: error: \(result.metrics.errorCount ?? 0), test: \(result.metrics.testsCount ?? 0), warning: \(result.metrics.warningCount ?? 0)")
-        print("build status: \(result.actions.first?.buildResult.status ?? "")")
-        print("action status: \(result.actions.first?.actionResult.status ?? "")")
+        print("error: \(result.metrics.errorCount ?? 0), test: \(result.metrics.testsCount ?? 0), warning: \(result.metrics.warningCount ?? 0)")
+        
+        try checkBuildStatus(result.actions)
         
         for action in result.actions {
             if let id = action.actionResult.testsRef?.id {
@@ -62,10 +62,38 @@ struct Parse: ParsableCommand {
             .setup(with: .testPlanRunSummary(path: filePath, id: id))
             .run()
         let result = try JSONDecoder().decode(ActionTestPlanRunSummariesModel.self, from: Data(output.utf8))
+        var totalDuration: Double = 0
         result.summaries.first?.testableSummaries.forEach {
-            print("\($0.name) result: \($0.tests.compactMap(\.duration).reduce(0, +))")
+//            print("\($0.name) result: \($0.tests.compactMap(\.duration).reduce(0, +))")
+            totalDuration += $0.tests.compactMap(\.duration).reduce(0, +)
             // TODO: find failed Test
-            
+        }
+        
+        print("Total Test Duration: \(totalDuration)")
+    }
+}
+
+enum StatusType: String {
+    case failed
+    case succeeded
+}
+
+enum ParseError: Error {
+    case buildError
+    case testError
+}
+
+private extension Parse {
+    private func checkBuildStatus(_ inputs: [ActionRecordModel]) throws {
+        for action in inputs {
+            let buildResult = StatusType(rawValue: action.buildResult.status) ?? .failed
+            let actionResult = StatusType(rawValue: action.actionResult.status) ?? .failed
+            if buildResult == .failed {
+                throw ParseError.buildError
+            }
+            if actionResult == .failed {
+                throw ParseError.testError
+            }
         }
     }
 }

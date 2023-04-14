@@ -67,7 +67,7 @@ extension Coverage {
         
         let result = try JSONDecoder().decode(CodeCoverageModel.self, from: Data(output.utf8))
         totalCoverage(result)
-        print(parseCodeCoverage(result))
+        print(parseCodeCoverage(result).reduce("", { $0 + $1 }))
     }
     
     func totalCoverage(_ input: CodeCoverageModel) {
@@ -77,7 +77,7 @@ extension Coverage {
             if printFormat == .default {
                 print("Total Coverage: 0% (\(coveredLines)/\(executableLines))\n")
             } else if printFormat == .markdown {
-                print("#Total Coverage: ![](https://progress-bar.dev/\(Int(round(0))) (\(coveredLines)/\(executableLines))<\\br>")
+                print("#Total Coverage: ![](https://progress-bar.dev/\(Int(round(0))) (\(coveredLines)/\(executableLines))</br>")
             }
             return
         }
@@ -86,7 +86,7 @@ extension Coverage {
         if printFormat == .default {
             print("Total Coverage: \(covPercent)% (\(coveredLines)/\(executableLines))\n")
         } else if printFormat == .markdown {
-            print("#Total Coverage: ![](https://progress-bar.dev/\(Int(round(covPercent))) (\(coveredLines)/\(executableLines))<\\br>")
+            print("#Total Coverage: ![](https://progress-bar.dev/\(Int(round(covPercent))) (\(coveredLines)/\(executableLines))</br>")
         }
     }
                   
@@ -106,7 +106,7 @@ extension Coverage {
                 if printFormat == .default {
                     targetCoverage = "\(target.name): \(percent)% (\(target.coveredLines)/\(target.executableLines))\n"
                 } else if printFormat == .markdown {
-                    targetCoverage = "- \(target.name): ![](https://progress-bar.dev/\(Int(round(percent))) (\(target.coveredLines)/\(target.executableLines))<\\br>"
+                    targetCoverage = "- \(target.name): ![](https://progress-bar.dev/\(Int(round(percent)))) (\(target.coveredLines)/\(target.executableLines))</br>"
                 }
                 
                 lines.append(targetCoverage)
@@ -117,9 +117,9 @@ extension Coverage {
                 if options.fileCoverage {
                     var fileCoverage = ""
                     if printFormat == .default {
-                        fileCoverage = "\(file.name): \(percent)% (\(file.coveredLines)/\(file.executableLines))\n"
+                        fileCoverage = "    \(file.name): \(percent)% (\(file.coveredLines)/\(file.executableLines))\n"
                     } else if printFormat == .markdown {
-                        fileCoverage = "- \(file.name): ![](https://progress-bar.dev/\(Int(round(percent))) (\(file.coveredLines)/\(file.executableLines))<\\br>"
+                        fileCoverage = "    - \(file.name): ![](https://progress-bar.dev/\(Int(round(percent)))) (\(file.coveredLines)/\(file.executableLines))</br>"
                     }
                     lines.append(fileCoverage)
                 }
@@ -128,9 +128,9 @@ extension Coverage {
                         let percent = function.lineCoverage * 100
                         var functionCoverage = ""
                         if printFormat == .default {
-                            functionCoverage = "\(function.name): \(percent)% (\(function.coveredLines)/\(function.executableLines)) \(function.executionCount) times\n"
+                            functionCoverage = "        \(function.name): \(percent)% (\(function.coveredLines)/\(function.executableLines)) \(function.executionCount) times\n"
                         } else if printFormat == .markdown {
-                            functionCoverage = "- \(function.name): ![](https://progress-bar.dev/\(Int(round(percent))) (\(function.coveredLines)/\(function.executableLines)) \(function.executionCount) times<\\br>"
+                            functionCoverage = "        - \(function.name): ![](https://progress-bar.dev/\(Int(round(percent)))) (\(function.coveredLines)/\(function.executableLines)) \(function.executionCount) times</br>"
                         }
                         lines.append(functionCoverage)
                     }
