@@ -12,6 +12,9 @@ struct CoverageOptions: ParsableArguments {
     @Argument(help: ".xcresult file Path")
     var xcResultFile: String? = nil
     
+    @Option(wrappedValue: 0, name: .shortAndLong, help: "print format type")
+    var printFormat: Int
+    
     @Flag(name: .shortAndLong, help: "Whether to print target coverage.")
     var targetCoverage = false
     
@@ -25,15 +28,22 @@ struct CoverageOptions: ParsableArguments {
     var verbose = false
 }
 
+enum CoveragePrintOption: Int {
+    case `default` = 0
+    case markdown = 1
+}
 
 struct Coverage: ParsableCommand {
-    
     public static let configuration = CommandConfiguration(abstract: "Generates a code coverage report of Xcode test results.")
-
+    
     @OptionGroup var options: CoverageOptions
     
     var filePath: String {
         options.xcResultFile ?? ""
+    }
+    
+    var printFormat: CoveragePrintOption {
+        CoveragePrintOption(rawValue: options.printFormat) ?? .default
     }
     
     func validate() throws {
@@ -49,14 +59,38 @@ struct Coverage: ParsableCommand {
     func run() throws {
         try runCodeCoverage()
     }
-    
+}
+
+extension Coverage {
     func runCodeCoverage() throws {
         let output = try ShellCommand().setup(with: .codeCoverage(path: filePath)).run()
         
         let result = try JSONDecoder().decode(CodeCoverageModel.self, from: Data(output.utf8))
-        print("output: \(parseCodeCoverage(result).reduce("", { $0 + "\n\($1)" }))")
+        totalCoverage(result)
+        print(parseCodeCoverage(result))
     }
     
+    func totalCoverage(_ input: CodeCoverageModel) {
+        let coveredLines = input.targets.reduce(0, { $0 + $1.coveredLines })
+        let executableLines = input.targets.reduce(0, { $0 + $1.executableLines })
+        guard executableLines > 0 else {
+            if printFormat == .default {
+                print("Total Coverage: 0% (\(coveredLines)/\(executableLines))\n")
+            } else if printFormat == .markdown {
+                print("#Total Coverage: ![](https://progress-bar.dev/\(Int(round(0))) (\(coveredLines)/\(executableLines))<\\br>")
+            }
+            return
+        }
+        let fraction = Double(coveredLines) / Double(executableLines)
+        let covPercent = fraction * 100
+        if printFormat == .default {
+            print("Total Coverage: \(covPercent)% (\(coveredLines)/\(executableLines))\n")
+        } else if printFormat == .markdown {
+            print("#Total Coverage: ![](https://progress-bar.dev/\(Int(round(covPercent))) (\(coveredLines)/\(executableLines))<\\br>")
+        }
+    }
+                  
+                  
     func parseCodeCoverage(_ input: CodeCoverageModel) -> [String] {
         var lines = [String]()
         var executableLines: Int = 0
@@ -68,39 +102,41 @@ struct Coverage: ParsableCommand {
             coveredLines += target.coveredLines
             
             if options.targetCoverage {
-                lines.append(
-                    "\(target.name): \(percent)% (\(target.coveredLines)/\(target.executableLines))"
-                )
+                var targetCoverage = ""
+                if printFormat == .default {
+                    targetCoverage = "\(target.name): \(percent)% (\(target.coveredLines)/\(target.executableLines))\n"
+                } else if printFormat == .markdown {
+                    targetCoverage = "- \(target.name): ![](https://progress-bar.dev/\(Int(round(percent))) (\(target.coveredLines)/\(target.executableLines))<\\br>"
+                }
+                
+                lines.append(targetCoverage)
             }
             
             for file in target.files {
                 let percent = file.lineCoverage * 100
                 if options.fileCoverage {
-                    lines.append(
-                        "\(file.name): \(percent)% (\(file.coveredLines)/\(file.executableLines))"
-                    )
+                    var fileCoverage = ""
+                    if printFormat == .default {
+                        fileCoverage = "\(file.name): \(percent)% (\(file.coveredLines)/\(file.executableLines))\n"
+                    } else if printFormat == .markdown {
+                        fileCoverage = "- \(file.name): ![](https://progress-bar.dev/\(Int(round(percent))) (\(file.coveredLines)/\(file.executableLines))<\\br>"
+                    }
+                    lines.append(fileCoverage)
                 }
                 if options.callerCoverage {
                     for function in file.functions {
                         let percent = function.lineCoverage * 100
-                        lines.append(
-                            "\(percent)% \(function.name):\(function.lineNumber)  (\(function.coveredLines)/\(function.executableLines)) \(function.executionCount) times"
-                        )
+                        var functionCoverage = ""
+                        if printFormat == .default {
+                            functionCoverage = "\(function.name): \(percent)% (\(function.coveredLines)/\(function.executableLines)) \(function.executionCount) times\n"
+                        } else if printFormat == .markdown {
+                            functionCoverage = "- \(function.name): ![](https://progress-bar.dev/\(Int(round(percent))) (\(function.coveredLines)/\(function.executableLines)) \(function.executionCount) times<\\br>"
+                        }
+                        lines.append(functionCoverage)
                     }
                 }
             }
         }
-        
-        guard executableLines > 0 else { return lines }
-        let fraction = Double(coveredLines) / Double(executableLines)
-        let covPercent = fraction * 100
-        let line = "Total coverage: \(covPercent)% (\(coveredLines)/\(executableLines))"
-        lines.insert(line, at: 1)
         return lines
     }
-    
 }
-
-
-
-
