@@ -77,7 +77,7 @@ extension Coverage {
             if printFormat == .default {
                 print("Total Coverage: 0% (\(coveredLines)/\(executableLines))\n")
             } else if printFormat == .markdown {
-                print("#Total Coverage: ![](https://progress-bar.dev/\(Int(round(0))) (\(coveredLines)/\(executableLines))</br>")
+                print("#Total Coverage: ![](https://progress-bar.dev/\(Int(round(0)))) (\(coveredLines)/\(executableLines))</br>")
             }
             return
         }
@@ -86,7 +86,7 @@ extension Coverage {
         if printFormat == .default {
             print("Total Coverage: \(covPercent)% (\(coveredLines)/\(executableLines))\n")
         } else if printFormat == .markdown {
-            print("#Total Coverage: ![](https://progress-bar.dev/\(Int(round(covPercent))) (\(coveredLines)/\(executableLines))</br>")
+            print("#Total Coverage: ![](https://progress-bar.dev/\(Int(round(covPercent)))) (\(coveredLines)/\(executableLines))</br>")
         }
     }
                   

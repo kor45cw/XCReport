@@ -46,7 +46,14 @@ struct Parse: ParsableCommand {
             .run()
         let result = try JSONDecoder().decode(ActionsInvocationRecordModel.self, from: Data(output.utf8))
         
-        print("error: \(result.metrics.errorCount ?? 0), test: \(result.metrics.testsCount ?? 0), warning: \(result.metrics.warningCount ?? 0)")
+        print("error: \(result.metrics.errorCount ?? 0)</br>test: \(result.metrics.testsCount ?? 0), testsFailedCount: \(result.metrics.testsFailedCount ?? 0) </br>warning: \(result.metrics.warningCount ?? 0)")
+        
+        for summary in result.actions.map(\.actionResult.issues).compactMap(\.testFailureSummaries).flatMap({ $0 }) {
+            if let testCaseName = summary.testCaseName {
+                print("\(testCaseName): \(summary.message)</br>")
+            }
+        }
+        
         
         try checkBuildStatus(result.actions)
         

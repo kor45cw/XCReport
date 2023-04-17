@@ -10,6 +10,7 @@ import Foundation
 
 struct ResultIssueSummariesModel: Decodable {
     let errorSummaries: [IssueSummaryModel]?
+    let testFailureSummaries: [IssueSummaryModel]?
     let warningSummaries: [IssueSummaryModel]?
 }
 

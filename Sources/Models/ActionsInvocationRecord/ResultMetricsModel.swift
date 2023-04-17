@@ -11,5 +11,6 @@ import Foundation
 struct ResultMetricsModel: Decodable {
     var errorCount: Int?
     var testsCount: Int?
+    var testsFailedCount: Int?
     var warningCount: Int?
 }
