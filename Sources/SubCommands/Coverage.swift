@@ -15,6 +15,9 @@ struct CoverageOptions: ParsableArguments {
     @Option(wrappedValue: 0, name: .shortAndLong, help: "print format type")
     var printFormat: Int
     
+    @Option(wrappedValue: [], name: .long, parsing: .upToNextOption)
+    var targetNames: [String]
+    
     @Flag(name: .shortAndLong, help: "Whether to print target coverage.")
     var targetCoverage = false
     
@@ -29,8 +32,9 @@ struct CoverageOptions: ParsableArguments {
 }
 
 enum CoveragePrintOption: Int {
-    case `default` = 0
+    case text = 0
     case markdown = 1
+    case html = 2
 }
 
 struct Coverage: ParsableCommand {
@@ -43,7 +47,7 @@ struct Coverage: ParsableCommand {
     }
     
     var printFormat: CoveragePrintOption {
-        CoveragePrintOption(rawValue: options.printFormat) ?? .default
+        CoveragePrintOption(rawValue: options.printFormat) ?? .text
     }
     
     func validate() throws {
@@ -74,7 +78,7 @@ extension Coverage {
         let coveredLines = input.targets.reduce(0, { $0 + $1.coveredLines })
         let executableLines = input.targets.reduce(0, { $0 + $1.executableLines })
         guard executableLines > 0 else {
-            if printFormat == .default {
+            if printFormat == .text {
                 print("Total Coverage: 0% (\(coveredLines)/\(executableLines))\n")
             } else if printFormat == .markdown {
                 print("#Total Coverage: ![](https://progress-bar.dev/\(Int(round(0)))) (\(coveredLines)/\(executableLines))</br>")
@@ -83,7 +87,7 @@ extension Coverage {
         }
         let fraction = Double(coveredLines) / Double(executableLines)
         let covPercent = fraction * 100
-        if printFormat == .default {
+        if printFormat == .text {
             print("Total Coverage: \(covPercent)% (\(coveredLines)/\(executableLines))\n")
         } else if printFormat == .markdown {
             print("#Total Coverage: ![](https://progress-bar.dev/\(Int(round(covPercent)))) (\(coveredLines)/\(executableLines))</br>")
@@ -97,13 +101,15 @@ extension Coverage {
         var coveredLines: Int = 0
         
         for target in input.targets {
+            guard options.targetNames.contains(target.name) else { continue }
+            
             let percent = target.lineCoverage * 100
             executableLines += target.executableLines
             coveredLines += target.coveredLines
             
             if options.targetCoverage {
                 var targetCoverage = ""
-                if printFormat == .default {
+                if printFormat == .text {
                     targetCoverage = "\(target.name): \(percent)% (\(target.coveredLines)/\(target.executableLines))\n"
                 } else if printFormat == .markdown {
                     targetCoverage = "- \(target.name): ![](https://progress-bar.dev/\(Int(round(percent)))) (\(target.coveredLines)/\(target.executableLines))</br>"
@@ -116,7 +122,7 @@ extension Coverage {
                 let percent = file.lineCoverage * 100
                 if options.fileCoverage {
                     var fileCoverage = ""
-                    if printFormat == .default {
+                    if printFormat == .text {
                         fileCoverage = "    \(file.name): \(percent)% (\(file.coveredLines)/\(file.executableLines))\n"
                     } else if printFormat == .markdown {
                         fileCoverage = "    - \(file.name): ![](https://progress-bar.dev/\(Int(round(percent)))) (\(file.coveredLines)/\(file.executableLines))</br>"
@@ -127,7 +133,7 @@ extension Coverage {
                     for function in file.functions {
                         let percent = function.lineCoverage * 100
                         var functionCoverage = ""
-                        if printFormat == .default {
+                        if printFormat == .text {
                             functionCoverage = "        \(function.name): \(percent)% (\(function.coveredLines)/\(function.executableLines)) \(function.executionCount) times\n"
                         } else if printFormat == .markdown {
                             functionCoverage = "        - \(function.name): ![](https://progress-bar.dev/\(Int(round(percent)))) (\(function.coveredLines)/\(function.executableLines)) \(function.executionCount) times</br>"
